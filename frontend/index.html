@@ -1,0 +1,176 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>NOCTURNE | Music Experience</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:wght@400;500;600&family=UnifrakturMaguntia&display=swap"
+          rel="stylesheet">
+</head>
+
+<body>
+
+    <aside class="sidebar">
+        <div class="logo">NOCTURNE</div>
+
+        <p class="menu-title">MENU</p>
+
+        <nav>
+            <a href="#" class="active">⌂ Início</a>
+            <a href="#musicas">♫ Músicas</a>
+            <a href="#artistas">♛ Artistas</a>
+            <a href="#playlists">▣ Playlists</a>
+            <a href="#favoritos">♡ Favoritos</a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <p>WHERE MUSIC<br>MEETS DARKNESS</p>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <span class="small-label">BEM-VINDA À NOCTURNE</span>
+                <h2>Seu universo musical.</h2>
+            </div>
+
+            <button class="purple-button" onclick="abrirCadastro()">
+                + Adicionar música
+            </button>
+        </header>
+
+        <section class="hero">
+            <div class="hero-text">
+                <span class="tag">EXPERIENCE THE DARK SIDE</span>
+
+                <h1>Feel the<br>
+                    <span>darkness.</span>
+                </h1>
+
+                <p>
+                    Descubra músicas que transformam<br>
+                    sentimentos em melodias.
+                </p>
+
+                <a href="#musicas" class="hero-button">
+                    EXPLORAR MÚSICAS ↗
+                </a>
+            </div>
+        </section>
+
+        <section class="section" id="musicas">
+            <div class="section-header">
+                <div>
+                    <span class="small-label">SUA PRÓXIMA OBSESSÃO</span>
+                    <h2>Em destaque</h2>
+                </div>
+            </div>
+
+            <div class="music-grid" id="musicGrid">
+                <p>Carregando músicas...</p>
+            </div>
+        </section>
+
+        <section class="section" id="artistas">
+            <div class="section-header">
+                <div>
+                    <span class="small-label">VOZES DA ESCURIDÃO</span>
+                    <h2>Artistas</h2>
+                </div>
+            </div>
+
+            <div class="artist-grid" id="artistGrid">
+                <p>Carregando artistas...</p>
+            </div>
+        </section>
+
+        <section class="section" id="playlists">
+            <div class="section-header">
+                <div>
+                    <span class="small-label">SUA ATMOSFERA</span>
+                    <h2>Playlists</h2>
+                </div>
+
+                <button class="outline-button" onclick="criarPlaylist()">
+                    + Criar playlist
+                </button>
+            </div>
+
+            <div class="playlist-grid" id="playlistGrid">
+                <p>Carregando playlists...</p>
+            </div>
+        </section>
+
+        <section class="section" id="favoritos">
+            <div class="section-header">
+                <div>
+                    <span class="small-label">SUAS OBSESSÕES</span>
+                    <h2>Favoritos</h2>
+                </div>
+            </div>
+
+            <div id="favoriteGrid" class="music-grid"></div>
+        </section>
+
+    </main>
+
+    <!-- Player fixo -->
+    <footer class="player">
+        <div class="player-info">
+            <div class="player-cover" id="playerCover">♫</div>
+
+            <div>
+                <strong id="playerTitle">Nenhuma música</strong>
+                <p id="playerArtist">Escolha uma música</p>
+            </div>
+        </div>
+
+        <div class="player-controls">
+            <audio id="audioPlayer" controls></audio>
+        </div>
+
+        <div class="player-extra">
+            <span>NOCTURNE ♡</span>
+        </div>
+    </footer>
+
+    <!-- Modal cadastro -->
+    <div class="modal" id="musicModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="fecharCadastro()">×</button>
+
+            <span class="small-label">NOVA MELODIA</span>
+            <h2>Adicionar música</h2>
+
+            <form id="musicForm">
+                <label>Título</label>
+                <input name="titulo" required placeholder="Nome da música">
+
+                <label>Artista</label>
+                <select name="artista_id" id="artistSelect" required>
+                    <option value="">Selecione um artista</option>
+                </select>
+
+                <label>URL do áudio</label>
+                <input name="audio_url" placeholder="https://...">
+
+                <label>Duração</label>
+                <input name="duracao" placeholder="3:45">
+
+                <button type="submit" class="purple-button">
+                    SALVAR MÚSICA
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
