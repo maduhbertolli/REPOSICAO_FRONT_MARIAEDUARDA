@@ -7,15 +7,226 @@ let songs = [],
   queue = [],
   currentIndex = -1;
 
+let isDemoMode = false;
+const DEMO_STORAGE_KEY = "nocturne_demo_data_v1";
+
+const DEFAULT_DEMO = {
+  artists: [
+    { id: 1, name: "The Midnight Echoes", bio: "Goth & Dark Wave", image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400", songs_count: 2 },
+    { id: 2, name: "Nocturna", bio: "Dark Ambient & Ethereal", image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400", songs_count: 1 }
+  ],
+  songs: [
+    { id: 1, title: "Shadows in the Mist", artist_id: 1, artist_name: "The Midnight Echoes", album: "After Dark", duration_seconds: 372, audio_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", cover_url: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400", created_at: "2026-11-16" },
+    { id: 2, title: "Midnight Sonata", artist_id: 1, artist_name: "The Midnight Echoes", album: "After Dark", duration_seconds: 423, audio_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", cover_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400", created_at: "2026-11-16" },
+    { id: 3, title: "Echoes of the Void", artist_id: 2, artist_name: "Nocturna", album: "Dark Realm", duration_seconds: 345, audio_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3", cover_url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400", created_at: "2026-11-16" }
+  ],
+  playlists: [
+    { id: 1, name: "Madrugada Roxa", description: "Atmosfera noturna e reflexiva", songs_count: 2 }
+  ],
+  playlist_songs: [
+    { playlist_id: 1, song_id: 1 },
+    { playlist_id: 1, song_id: 2 }
+  ],
+  favorites: [1]
+};
+
+function getDemoData() {
+  try {
+    const raw = localStorage.getItem(DEMO_STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(DEFAULT_DEMO));
+      return JSON.parse(JSON.stringify(DEFAULT_DEMO));
+    }
+    return JSON.parse(raw);
+  } catch {
+    return JSON.parse(JSON.stringify(DEFAULT_DEMO));
+  }
+}
+
+function saveDemoData(data) {
+  try {
+    localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error("Erro salvando localStorage:", e);
+  }
+}
+
+function mockApi(url, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  const body = options.body ? JSON.parse(options.body) : {};
+  const data = getDemoData();
+
+  if (url === "/artists" && method === "GET") {
+    return data.artists.map((a) => ({
+      ...a,
+      songs_count: data.songs.filter((s) => s.artist_id === a.id).length,
+    }));
+  }
+  if (url === "/artists" && method === "POST") {
+    const newId = (data.artists.reduce((max, a) => Math.max(max, a.id), 0) || 0) + 1;
+    const newArtist = {
+      id: newId,
+      name: body.name.trim(),
+      bio: body.bio || "",
+      image_url: body.image_url || "",
+      songs_count: 0,
+    };
+    data.artists.push(newArtist);
+    saveDemoData(data);
+    return newArtist;
+  }
+  const matchArtistDel = url.match(/^\/artists\/(\d+)$/);
+  if (matchArtistDel && method === "DELETE") {
+    const artistId = Number(matchArtistDel[1]);
+    data.artists = data.artists.filter((a) => a.id !== artistId);
+    data.songs = data.songs.filter((s) => s.artist_id !== artistId);
+    saveDemoData(data);
+    return { message: "Artista removido." };
+  }
+
+  if (url === "/songs" && method === "GET") {
+    return data.songs.map((s) => {
+      const art = data.artists.find((a) => a.id === s.artist_id);
+      return { ...s, artist_name: art ? art.name : "Artista" };
+    });
+  }
+  if (url === "/songs" && method === "POST") {
+    const newId = (data.songs.reduce((max, s) => Math.max(max, s.id), 0) || 0) + 1;
+    const art = data.artists.find((a) => a.id === Number(body.artist_id));
+    const newSong = {
+      id: newId,
+      title: body.title.trim(),
+      artist_id: Number(body.artist_id),
+      artist_name: art ? art.name : "Artista",
+      album: body.album || "Single",
+      duration_seconds: Number(body.duration_seconds) || 0,
+      audio_url: body.audio_url.trim(),
+      cover_url: body.cover_url || "",
+      created_at: new Date().toISOString(),
+    };
+    data.songs.unshift(newSong);
+    saveDemoData(data);
+    return { id: newId, message: "Música cadastrada." };
+  }
+  const matchSongDel = url.match(/^\/songs\/(\d+)$/);
+  if (matchSongDel && method === "DELETE") {
+    const songId = Number(matchSongDel[1]);
+    data.songs = data.songs.filter((s) => s.id !== songId);
+    data.favorites = data.favorites.filter((id) => id !== songId);
+    data.playlist_songs = data.playlist_songs.filter((ps) => ps.song_id !== songId);
+    saveDemoData(data);
+    return { message: "Música removida." };
+  }
+
+  if (url === "/playlists" && method === "GET") {
+    return data.playlists.map((p) => ({
+      ...p,
+      songs_count: data.playlist_songs.filter((ps) => ps.playlist_id === p.id).length,
+    }));
+  }
+  if (url === "/playlists" && method === "POST") {
+    const newId = (data.playlists.reduce((max, p) => Math.max(max, p.id), 0) || 0) + 1;
+    const newPlaylist = {
+      id: newId,
+      name: body.name.trim(),
+      description: body.description || "",
+      songs_count: 0,
+    };
+    data.playlists.push(newPlaylist);
+    saveDemoData(data);
+    return newPlaylist;
+  }
+  const matchPlDel = url.match(/^\/playlists\/(\d+)$/);
+  if (matchPlDel && method === "DELETE") {
+    const plId = Number(matchPlDel[1]);
+    data.playlists = data.playlists.filter((p) => p.id !== plId);
+    data.playlist_songs = data.playlist_songs.filter((ps) => ps.playlist_id !== plId);
+    saveDemoData(data);
+    return { message: "Playlist removida." };
+  }
+
+  const matchPlSongs = url.match(/^\/playlists\/(\d+)\/songs$/);
+  if (matchPlSongs && method === "GET") {
+    const plId = Number(matchPlSongs[1]);
+    const songIds = data.playlist_songs
+      .filter((ps) => ps.playlist_id === plId)
+      .map((ps) => ps.song_id);
+    return data.songs
+      .filter((s) => songIds.includes(s.id))
+      .map((s) => {
+        const art = data.artists.find((a) => a.id === s.artist_id);
+        return { ...s, artist_name: art ? art.name : "Artista" };
+      });
+  }
+  if (matchPlSongs && method === "POST") {
+    const plId = Number(matchPlSongs[1]);
+    const songId = Number(body.song_id);
+    if (!data.playlist_songs.some((ps) => ps.playlist_id === plId && ps.song_id === songId)) {
+      data.playlist_songs.push({ playlist_id: plId, song_id: songId });
+      saveDemoData(data);
+    }
+    return { message: "Música adicionada à playlist." };
+  }
+  const matchPlSongDel = url.match(/^\/playlists\/(\d+)\/songs\/(\d+)$/);
+  if (matchPlSongDel && method === "DELETE") {
+    const plId = Number(matchPlSongDel[1]);
+    const songId = Number(matchPlSongDel[2]);
+    data.playlist_songs = data.playlist_songs.filter(
+      (ps) => !(ps.playlist_id === plId && ps.song_id === songId),
+    );
+    saveDemoData(data);
+    return { message: "Música retirada da playlist." };
+  }
+
+  if (url === "/favorites" && method === "GET") {
+    return data.songs
+      .filter((s) => data.favorites.includes(s.id))
+      .map((s) => {
+        const art = data.artists.find((a) => a.id === s.artist_id);
+        return { ...s, artist_name: art ? art.name : "Artista" };
+      });
+  }
+  const matchFav = url.match(/^\/favorites\/(\d+)$/);
+  if (matchFav && method === "POST") {
+    const songId = Number(matchFav[1]);
+    if (!data.favorites.includes(songId)) {
+      data.favorites.push(songId);
+      saveDemoData(data);
+    }
+    return { message: "Adicionada aos favoritos." };
+  }
+  if (matchFav && method === "DELETE") {
+    const songId = Number(matchFav[1]);
+    data.favorites = data.favorites.filter((id) => id !== songId);
+    saveDemoData(data);
+    return { message: "Removida dos favoritos." };
+  }
+
+  return null;
+}
+
 async function api(url, options = {}) {
-  const response = await fetch(`/api${url}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options,
-  });
-  const data = response.status === 204 ? null : await response.json();
-  if (!response.ok)
-    throw new Error(data?.error || "Não foi possível concluir a operação.");
-  return data;
+  if (isDemoMode) {
+    return mockApi(url, options);
+  }
+  try {
+    const response = await fetch(`/api${url}`, {
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      ...options,
+    });
+    const data = response.status === 204 ? null : await response.json();
+    if (!response.ok)
+      throw new Error(data?.error || "Não foi possível concluir a operação.");
+    return data;
+  } catch (err) {
+    if (!isDemoMode) {
+      console.warn("Backend indisponível, alternando para Modo Demonstração");
+      isDemoMode = true;
+      $("#connection-status").textContent = "Modo Demo (GitHub Pages)";
+      return mockApi(url, options);
+    }
+    throw err;
+  }
 }
 function toast(message) {
   const el = $("#toast");
@@ -436,11 +647,27 @@ $("#volume").addEventListener(
 
 (async function init() {
   try {
-    await refresh();
-    $("#connection-status").textContent = "MySQL conectado";
+    if (window.location.hostname.includes("github.io")) {
+      isDemoMode = true;
+      $("#connection-status").textContent = "Online (GitHub Pages)";
+      await refresh();
+      return;
+    }
+
+    const statusCheck = await fetch("/api/status").catch(() => null);
+    if (statusCheck && statusCheck.ok) {
+      isDemoMode = false;
+      await refresh();
+      $("#connection-status").textContent = "MySQL conectado";
+    } else {
+      isDemoMode = true;
+      $("#connection-status").textContent = "Modo Demo";
+      await refresh();
+    }
   } catch (e) {
-    $("#connection-status").textContent = "Sem conexão";
-    toast("Não foi possível carregar. Verifique MySQL e o arquivo .env.");
-    console.error(e);
+    isDemoMode = true;
+    $("#connection-status").textContent = "Modo Demo";
+    await refresh();
+    console.warn("Iniciando em modo de demonstração:", e);
   }
 })();
